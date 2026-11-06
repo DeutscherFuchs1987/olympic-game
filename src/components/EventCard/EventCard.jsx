@@ -1,0 +1,322 @@
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'motion/react'
+import { SEASON_COLOR, getEra, getMedals } from '../../data/olympics'
+import { countryName } from '../../data/countries'
+import { cityRu } from '../../data/wikiTitles'
+import { useWikiImage, useWikiGallery, useGamesInfo } from '../../hooks/useWikiImage.js'
+
+const SEASON_RU = { summer: 'Летние', winter: 'Зимние' }
+
+// Walk through candidate URLs, advancing to the next one on load error.
+function useResilientImage(sources) {
+  const key = sources ? sources.join('|') : ''
+  const [idx, setIdx] = useState(0)
+
+  useEffect(() => {
+    setIdx(0)
+  }, [key])
+
+  const src = sources && idx < sources.length ? sources[idx] : null
+  return { src, failed: !!sources?.length && !src, onError: () => setIdx((i) => i + 1) }
+}
+
+function Photo({ sources, alt = '', className }) {
+  const { src, onError } = useResilientImage(sources)
+  if (!src) return null
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      referrerPolicy="no-referrer"
+      draggable={false}
+      onError={onError}
+    />
+  )
+}
+
+function Media({ sources, credit, loading, season, year, alt }) {
+  const { src, failed, onError } = useResilientImage(sources)
+  const hasImage = !!src && !failed
+
+  return (
+    <div className={`event-card__media${hasImage ? '' : ' event-card__media--empty'}`}>
+      {hasImage && (
+        <img
+          className="event-card__photo"
+          src={src}
+          alt={alt}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          draggable={false}
+          onError={onError}
+        />
+      )}
+
+      <div className="event-card__media-scrim" />
+
+      <div className="event-card__media-head">
+        <span className="event-card__season" style={{ color: SEASON_COLOR[season] }}>
+          {SEASON_RU[season] ?? 'Летние'} Игры
+        </span>
+        <span className="event-card__media-year">{year}</span>
+      </div>
+
+      {hasImage && credit && (
+        <a className="event-card__credit" href={credit.href} target="_blank" rel="noreferrer">
+          {credit.label}
+        </a>
+      )}
+      {!hasImage && loading && <span className="event-card__media-loading">загрузка фото…</span>}
+    </div>
+  )
+}
+
+function About({ loading, info }) {
+  if (!loading && !info?.extract) return null
+
+  return (
+    <section className="event-card__about">
+      <div className="event-card__section-title">Об этих Играх</div>
+      {loading ? (
+        <div className="event-card__section-loading">загрузка…</div>
+      ) : (
+        <p className="about__text">{info.extract}</p>
+      )}
+      {info?.page && (
+        <a className="about__link" href={info.page} target="_blank" rel="noreferrer">
+          Википедия →
+        </a>
+      )}
+    </section>
+  )
+}
+
+function Gallery({ loading, photos, onOpen }) {
+  if (!loading && photos.length === 0) return null
+
+  return (
+    <section className="event-card__gallery">
+      <div className="event-card__section-title">
+        Фотографии{photos.length > 0 ? ` · ${photos.length}` : ''}
+      </div>
+      {loading ? (
+        <div className="event-card__section-loading">загрузка фотографий…</div>
+      ) : (
+        <div className="gallery__strip">
+          {photos.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              className="gallery__thumb"
+              onClick={() => onOpen(i)}
+              aria-label="Открыть фото"
+            >
+              <Photo className="gallery__thumb-img" sources={p.sources} />
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function Lightbox({ photos, index, onClose, onNav }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      else if (e.key === 'ArrowRight') onNav(1)
+      else if (e.key === 'ArrowLeft') onNav(-1)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose, onNav])
+
+  const photo = photos[index]
+  if (!photo) return null
+
+  return (
+    <motion.div
+      className="lightbox"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onClose}
+    >
+      <button className="lightbox__close" onClick={onClose} aria-label="Закрыть">×</button>
+
+      {photos.length > 1 && (
+        <>
+          <button
+            className="lightbox__nav lightbox__nav--prev"
+            onClick={(e) => { e.stopPropagation(); onNav(-1) }}
+            aria-label="Предыдущее фото"
+          >‹</button>
+          <button
+            className="lightbox__nav lightbox__nav--next"
+            onClick={(e) => { e.stopPropagation(); onNav(1) }}
+            aria-label="Следующее фото"
+          >›</button>
+        </>
+      )}
+
+      <figure className="lightbox__figure" onClick={(e) => e.stopPropagation()}>
+        <Photo className="lightbox__img" sources={photo.sources} />
+        <figcaption className="lightbox__caption">
+          <span className="lightbox__counter">{index + 1} / {photos.length}</span>
+          <a className="lightbox__link" href={photo.link} target="_blank" rel="noreferrer">
+            Wikimedia Commons →
+          </a>
+        </figcaption>
+      </figure>
+    </motion.div>
+  )
+}
+
+export default function EventCard({ event, onClose }) {
+  const era = event ? getEra(event.year) : null
+  const medals = event ? getMedals(event.id) : []
+
+  const city = useWikiImage(event?.city)
+  const games = useGamesInfo(event?.year, event?.season)
+  const gallery = useWikiGallery(event?.year, event?.season, event?.city)
+
+  const [lightbox, setLightbox] = useState(null)
+
+  useEffect(() => {
+    setLightbox(null)
+  }, [event?.id])
+
+  useEffect(() => {
+    if (!event) return undefined
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || lightbox != null) return
+      // The mascot gallery has its own Escape handler and sits above the card.
+      if (document.querySelector('.mascots, .mascots__detail')) return
+      onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [event, lightbox, onClose])
+
+  const heroPhoto = gallery.photos[0] ?? null
+  const heroSources = [
+    ...(heroPhoto?.sources ?? []),
+    ...(games.info?.emblem?.sources ?? []),
+    ...(city.image?.sources ?? []),
+  ]
+  const heroLoading = (gallery.loading || games.loading || city.loading) && heroSources.length === 0
+  const heroCredit = heroPhoto
+    ? { href: heroPhoto.link, label: 'Фото · Wikimedia Commons' }
+    : games.info?.page
+      ? { href: games.info.page, label: 'Изображение · Википедия' }
+      : city.image?.link || city.image?.page
+        ? {
+            href: city.image.link || city.image.page,
+            label: [city.image.author, city.image.license].filter(Boolean).join(' · ') || 'Wikimedia Commons',
+          }
+        : null
+
+  const nav = (dir) =>
+    setLightbox((i) =>
+      i == null || gallery.photos.length === 0
+        ? i
+        : (i + dir + gallery.photos.length) % gallery.photos.length,
+    )
+
+  return (
+    <>
+      <AnimatePresence>
+        {event && (
+          <motion.aside
+            key={event.id}
+            className={`event-card era-${era.id}`}
+            initial={{ opacity: 0, x: 48, y: '-50%' }}
+            animate={{ opacity: 1, x: 0, y: '-50%' }}
+            exit={{ opacity: 0, x: 48, y: '-50%' }}
+            transition={{ type: 'spring', stiffness: 210, damping: 26 }}
+          >
+            <button className="event-card__close" onClick={onClose} aria-label="Закрыть">
+              ×
+            </button>
+
+            <Media
+              sources={heroSources}
+              credit={heroCredit}
+              loading={heroLoading}
+              season={event.season}
+              year={event.year}
+              alt={`${cityRu(event.city)} — ${event.year}`}
+            />
+
+            <div className="event-card__body">
+              <div className="event-card__city">{cityRu(event.city)}</div>
+              <div className="event-card__country">
+                {countryName(event.countryCode) || event.country}
+                {event.countryCode ? ` · ${event.countryCode}` : ''}
+              </div>
+
+              <div className="event-card__era">{era.label}</div>
+
+              {event.mascot && (
+                <div className="event-card__row">
+                  <span className="event-card__row-label">Талисман</span>
+                  <span className="event-card__row-value">{event.mascot}</span>
+                </div>
+              )}
+
+              {event.fact && <p className="event-card__fact">{event.fact}</p>}
+
+              {event.cancelled && (
+                <div className="event-card__cancelled">Эта Игра не состоялась.</div>
+              )}
+
+              <div className="event-card__medals">
+                <div className="event-card__section-title">Медальный зачёт · топ-5</div>
+                {medals.length > 0 ? (
+                  <>
+                    <div className="medal-row medal-row--head">
+                      <span className="medal-rank">№</span>
+                      <span className="medal-name">Страна</span>
+                      <i className="medal-dot medal-dot--gold" />
+                      <i className="medal-dot medal-dot--silver" />
+                      <i className="medal-dot medal-dot--bronze" />
+                    </div>
+                    {medals.map((m, i) => (
+                      <div className="medal-row" key={m.code}>
+                        <span className="medal-rank">{i + 1}</span>
+                        <span className="medal-name" title={countryName(m.code)}>{countryName(m.code)}</span>
+                        <span className="medal-count medal-count--gold">{m.gold}</span>
+                        <span className="medal-count medal-count--silver">{m.silver}</span>
+                        <span className="medal-count medal-count--bronze">{m.bronze}</span>
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <div className="medal-none">Данные медалей пока недоступны.</div>
+                )}
+              </div>
+
+              <About loading={games.loading} info={games.info} />
+
+              <Gallery loading={gallery.loading} photos={gallery.photos} onOpen={setLightbox} />
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {event && lightbox != null && (
+          <Lightbox
+            photos={gallery.photos}
+            index={lightbox}
+            onClose={() => setLightbox(null)}
+            onNav={nav}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
