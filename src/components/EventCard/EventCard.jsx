@@ -175,9 +175,12 @@ function Lightbox({ photos, index, onClose, onNav }) {
   )
 }
 
-export default function EventCard({ event, onClose }) {
+export default function EventCard({ event, onClose, historyGames = [], onNavigate }) {
   const era = event ? getEra(event.year) : null
   const medals = event ? getMedals(event.id) : []
+  const gameIndex = event ? historyGames.findIndex((game) => game.id === event.id) : -1
+  const previousGame = gameIndex > 0 ? historyGames[gameIndex - 1] : null
+  const nextGame = gameIndex >= 0 && gameIndex < historyGames.length - 1 ? historyGames[gameIndex + 1] : null
 
   const city = useWikiImage(event?.city)
   const games = useGamesInfo(event?.year, event?.season)
@@ -302,6 +305,28 @@ export default function EventCard({ event, onClose }) {
               <About loading={games.loading} info={games.info} />
 
               <Gallery loading={gallery.loading} photos={gallery.photos} onOpen={setLightbox} />
+
+              {(previousGame || nextGame) && (
+                <div className="event-card__nav">
+                  <button
+                    type="button"
+                    className="event-card__nav-btn"
+                    disabled={!previousGame}
+                    onClick={() => previousGame && onNavigate?.(previousGame)}
+                  >
+                    ← {previousGame ? `${previousGame.year}` : '—'}
+                  </button>
+                  <span className="event-card__nav-label">другие Игры</span>
+                  <button
+                    type="button"
+                    className="event-card__nav-btn"
+                    disabled={!nextGame}
+                    onClick={() => nextGame && onNavigate?.(nextGame)}
+                  >
+                    {nextGame ? `${nextGame.year}` : '—'} →
+                  </button>
+                </div>
+              )}
             </div>
           </motion.aside>
         )}

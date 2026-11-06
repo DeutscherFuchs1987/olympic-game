@@ -10,6 +10,7 @@ import CountryBorders from './CountryBorders.jsx'
 import TorchRelay from './TorchRelay.jsx'
 import MedalConstellation from './MedalConstellation.jsx'
 import CancelledMarkers from './CancelledMarkers.jsx'
+import FollowCam from './FollowCam.jsx'
 import {
   buildMapMarkerPositions,
   buildMarkerPositions,
@@ -19,7 +20,7 @@ import {
   MAP_WIDTH,
 } from './markerLayout.js'
 import { useCountryFeatures } from '../../data/countriesGeo.js'
-import { CANCELLED_GAMES, colorForSeason, latLonToVector3 } from '../../data/olympics'
+import { colorForSeason, latLonToVector3 } from '../../data/olympics'
 
 const RADIUS = 2
 const SURFACE = RADIUS * 1.012
@@ -162,7 +163,7 @@ function MapCamera({ mapMode, controlsRef, hasCard = false }) {
     if (mapMode) wasMapView.current = true
 
     const fullAspect = Math.max(0.4, size.width / size.height)
-    const reserved = hasCard ? Math.min(400, size.width * 0.36) : 0
+    const reserved = hasCard ? Math.min(440, size.width * 0.48) : 0
     const availableWidth = Math.max(320, size.width - reserved)
     const aspect = availableWidth / size.height
     const halfFov = (camera.fov * Math.PI) / 360
@@ -202,11 +203,13 @@ function MapCamera({ mapMode, controlsRef, hasCard = false }) {
 
 export default function Globe({
   cities = [],
+  cancelledGames = [],
   onHover,
   onSelect,
   activeGame = null,
   selectedGame = null,
   revealYear = 2028,
+  timelineYear = 2028,
   visitedIds = null,
   interactive = true,
   paused = false,
@@ -215,6 +218,9 @@ export default function Globe({
   morphRef,
   timeRef,
   eraId = 'modern',
+  playing = false,
+  seasonFilter = 'all',
+  followUntilRef,
   controlsRef,
   groupRef,
   labelRef,
@@ -317,9 +323,9 @@ export default function Globe({
 
       <CityRoute
         games={cities}
-        activeGame={activeGame}
         selectedGame={selectedGame}
         revealYear={revealYear}
+        timelineYear={timelineYear}
         flat={flat}
         visible={linesVisible}
       />
@@ -353,7 +359,7 @@ export default function Globe({
       />
 
       <CancelledMarkers
-        games={CANCELLED_GAMES}
+        games={cancelledGames}
         morphRef={morphRef}
         revealYear={revealYear}
         selectedId={activeGame?.id ?? null}
@@ -366,6 +372,21 @@ export default function Globe({
         activeGame={activeGame}
         timeRef={timeRef}
         morphRef={morphRef}
+        seasonFilter={seasonFilter}
+      />
+
+      <FollowCam
+        playing={playing}
+        games={cities}
+        activeGame={activeGame}
+        timeRef={timeRef}
+        groupRef={ref}
+        controlsRef={controlsRef}
+        eraId={eraId}
+        seasonFilter={seasonFilter}
+        followUntilRef={followUntilRef}
+        mapMode={mapMode}
+        morphing={morphing}
       />
 
       <LabelProjector

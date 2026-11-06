@@ -19,23 +19,23 @@ import { MASCOTS } from '../data/mascots.js'
 import { cityRu } from '../data/wikiTitles.js'
 import { countryName } from '../data/countries.js'
 
-const nearestByYear = (year) =>
-  HELD_GAMES.reduce(
-    (best, g) => (Math.abs(g.year - year) < Math.abs(best.year - year) ? g : best),
-    HELD_GAMES[0],
+const nearestByYear = (year, list = HELD_GAMES) =>
+  list.reduce(
+    (best, g) => (best == null || Math.abs(g.year - year) < Math.abs(best.year - year) ? g : best),
+    null,
   )
 
-function FlightOnSelect({ selected, controlsRef, groupRef, mapMode, morphing, eraId }) {
+function FlightOnSelect({ selected, controlsRef, groupRef, mapMode, morphing, playing, eraId }) {
   const { flyToEvent, resetView } = useCameraFlight(controlsRef, groupRef, eraId)
   const ready = useRef(false)
-  const modeRef = useRef({ mapMode, morphing })
+  const modeRef = useRef({ mapMode, morphing, playing })
 
   useEffect(() => {
-    modeRef.current = { mapMode, morphing }
-  }, [mapMode, morphing])
+    modeRef.current = { mapMode, morphing, playing }
+  }, [mapMode, morphing, playing])
 
   useEffect(() => {
-    if (modeRef.current.mapMode || modeRef.current.morphing) {
+    if (modeRef.current.mapMode || modeRef.current.morphing || modeRef.current.playing) {
       ready.current = true
       return
     }
@@ -49,10 +49,12 @@ function FlightOnSelect({ selected, controlsRef, groupRef, mapMode, morphing, er
 
 const SceneContents = ({
   cities,
+  cancelledGames,
   hovered,
   selected,
   activeGame,
   revealYear,
+  timelineYear,
   visitedIds,
   onHover,
   onSelect,
@@ -62,6 +64,9 @@ const SceneContents = ({
   morphRef,
   timeRef,
   eraId,
+  playing,
+  seasonFilter,
+  followUntilRef,
 }) => {
   const controlsRef = useRef()
   const groupRef = useRef()
@@ -77,18 +82,23 @@ const SceneContents = ({
 
       <Globe
         cities={cities}
+        cancelledGames={cancelledGames}
         onHover={onHover}
         onSelect={onSelect}
         activeGame={activeGame}
         selectedGame={selected}
         revealYear={revealYear}
+        timelineYear={timelineYear}
         visitedIds={visitedIds}
-        paused={!!hovered || !!selected || mapMode || morphing}
+        paused={!!hovered || !!selected || mapMode || morphing || playing}
         mapMode={mapMode}
         morphing={morphing}
         morphRef={morphRef}
         timeRef={timeRef}
         eraId={eraId}
+        playing={playing}
+        seasonFilter={seasonFilter}
+        followUntilRef={followUntilRef}
         controlsRef={controlsRef}
         groupRef={groupRef}
         labelRef={labelRef}
@@ -100,13 +110,14 @@ const SceneContents = ({
         groupRef={groupRef}
         mapMode={mapMode}
         morphing={morphing}
+        playing={playing}
         eraId={eraId}
       />
 
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!mapMode && !morphing}
+        enabled={!mapMode && !morphing && !playing}
         enablePan={false}
         enableZoom={false}
         enableDamping
@@ -130,11 +141,13 @@ export default function GlobeScene({ active = false }) {
   const [eraChapterOpen, setEraChapterOpen] = useState(false)
   const [mapMode, setMapMode] = useState(false)
   const [morphing, setMorphing] = useState(false)
+  const [seasonFilter, setSeasonFilter] = useState('all')
   const morphRef = useRef(0)
   const tooltipRef = useRef()
   const labelRef = useRef()
   const hoverIdRef = useRef(null)
   const playRef = useRef({ t: MIN_YEAR })
+  const followUntilRef = useRef(0)
 
   const { time, timeRef, setTime, onWheel } = useScrollTimeline({
     minYear: MIN_YEAR,
@@ -142,12 +155,42 @@ export default function GlobeScene({ active = false }) {
     initial: MIN_YEAR,
   })
 
-  const nearest = useMemo(() => nearestByYear(time), [time])
+  const seasonGames = useMemo(
+    () => (seasonFilter === 'all' ? HELD_GAMES : HELD_GAMES.filter((g) => g.season === seasonFilter)),
+    [seasonFilter],
+  )
+  const cancelledSeasonGames = useMemo(
+    () => (seasonFilter === 'all'
+      ? CANCELLED_GAMES
+      : CANCELLED_GAMES.filter((g) => g.season === seasonFilter)),
+    [seasonFilter],
+  )
+  const cardGames = useMemo(
+    () => [...seasonGames, ...cancelledSeasonGames].sort(
+      (a, b) => a.year - b.year || (a.season === 'winter' ? -1 : 1),
+    ),
+    [seasonGames, cancelledSeasonGames],
+  )
+
+  const nearest = useMemo(() => nearestByYear(time, seasonGames), [time, seasonGames])
   const activeGame = selected ?? nearest
   const activeId = activeGame?.id ?? null
   const revealYear = Math.floor(time + 0.5)
+  const timelineYear = Math.floor(time)
   const era = useMemo(() => getEra(activeGame?.year ?? time), [activeGame, time])
   const mascotCount = useMemo(() => HELD_GAMES.filter((g) => MASCOTS[g.id]).length, [])
+
+  const toggleSeason = useCallback((next) => {
+    if (next === seasonFilter) return
+    setSeasonFilter(next)
+    setSelected(null)
+    const list = next === 'all' ? HELD_GAMES : HELD_GAMES.filter((g) => g.season === next)
+    const target = nearestByYear(timeRef.current, list)
+    if (target) {
+      followUntilRef.current = performance.now() + 1100
+      setTime(target.year)
+    }
+  }, [seasonFilter, setTime, timeRef])
 
   useEffect(() => {
     setEraMood(era.id)
@@ -170,6 +213,9 @@ export default function GlobeScene({ active = false }) {
   const handleSelect = useCallback(
     (game) => {
       if (!game) return
+      if (seasonFilter !== 'all' && game.season !== seasonFilter) {
+        setSeasonFilter(game.season)
+      }
       gsap.killTweensOf(playRef.current)
       setPlaying(false)
       setSelected(game)
@@ -182,11 +228,12 @@ export default function GlobeScene({ active = false }) {
         return next
       })
     },
-    [setTime],
+    [seasonFilter, setTime],
   )
 
   const handleScrub = useCallback(
     (year) => {
+      followUntilRef.current = performance.now() + 1100
       setTime(year)
       closeIfFar(year)
     },
@@ -195,10 +242,10 @@ export default function GlobeScene({ active = false }) {
 
   const handleCommit = useCallback(
     (year) => {
-      const g = nearestByYear(year)
+      const g = nearestByYear(year, seasonGames)
       if (g) handleSelect(g)
     },
-    [handleSelect],
+    [handleSelect, seasonGames],
   )
 
   const handleWheel = useCallback(
@@ -207,6 +254,7 @@ export default function GlobeScene({ active = false }) {
         gsap.killTweensOf(playRef.current)
         setPlaying(false)
       }
+      followUntilRef.current = performance.now() + 1100
       onWheel(e)
       closeIfFar(timeRef.current)
     },
@@ -219,9 +267,12 @@ export default function GlobeScene({ active = false }) {
       setPlaying(false)
       return
     }
-    let from = timeRef.current
-    if (from >= MAX_YEAR - 0.5) from = MIN_YEAR
+    const first = seasonGames[0]?.year ?? MIN_YEAR
+    const last = seasonGames[seasonGames.length - 1]?.year ?? MAX_YEAR
+    let from = Math.max(timeRef.current, first)
+    if (from >= last - 0.5) from = first
     playRef.current.t = from
+    setTime(from)
     setSelected(null)
     setPlaying(true)
     gsap.to(playRef.current, {
@@ -231,7 +282,7 @@ export default function GlobeScene({ active = false }) {
       onUpdate: () => setTime(playRef.current.t),
       onComplete: () => setPlaying(false),
     })
-  }, [playing, setTime, timeRef])
+  }, [playing, seasonGames, setTime, timeRef])
 
   const toggleMap = useCallback(() => {
     if (morphing) return
@@ -261,11 +312,13 @@ export default function GlobeScene({ active = false }) {
           gl={{ antialias: true }}
         >
           <MemoScene
-            cities={HELD_GAMES}
+            cities={seasonGames}
+            cancelledGames={cancelledSeasonGames}
             hovered={hovered}
             selected={selected}
             activeGame={activeGame}
             revealYear={revealYear}
+            timelineYear={timelineYear}
             visitedIds={visited}
             onHover={handleHover}
             onSelect={handleSelect}
@@ -275,6 +328,9 @@ export default function GlobeScene({ active = false }) {
             morphRef={morphRef}
             timeRef={timeRef}
             eraId={era.id}
+            playing={playing}
+            seasonFilter={seasonFilter}
+            followUntilRef={followUntilRef}
           />
         </Canvas>
       </div>
@@ -294,12 +350,34 @@ export default function GlobeScene({ active = false }) {
 
       <div className="hud">
         <div className="hud__title">ОЛИМПИЙСКИЕ ИГРЫ</div>
-        <div className="hud__subtitle">1896 — 2028 · одна точка — одна Игра</div>
+        <div className="hud__subtitle">1896 — 2028 · одна точка — один город</div>
         <div className="hud__era">{era.label}</div>
         <div className="hud__medium">{era.medium}</div>
-        <div className="hud__legend">
-          <span><i style={{ background: SEASON_COLOR.summer }} />Летние</span>
-          <span><i style={{ background: SEASON_COLOR.winter }} />Зимние</span>
+        <div className="hud__seasons" role="group" aria-label="Сезон">
+          <button
+            type="button"
+            className={`hud__season${seasonFilter === 'all' ? ' hud__season--on' : ''}`}
+            onClick={() => toggleSeason('all')}
+            aria-pressed={seasonFilter === 'all'}
+          >
+            Все
+          </button>
+          <button
+            type="button"
+            className={`hud__season${seasonFilter === 'summer' ? ' hud__season--on' : ''}`}
+            onClick={() => toggleSeason('summer')}
+            aria-pressed={seasonFilter === 'summer'}
+          >
+            <i style={{ background: SEASON_COLOR.summer }} />Летние
+          </button>
+          <button
+            type="button"
+            className={`hud__season${seasonFilter === 'winter' ? ' hud__season--on' : ''}`}
+            onClick={() => toggleSeason('winter')}
+            aria-pressed={seasonFilter === 'winter'}
+          >
+            <i style={{ background: SEASON_COLOR.winter }} />Зимние
+          </button>
         </div>
         <div className="hud__hint">перетащите, чтобы вращать · кликните по точке — увидите границы страны · скролл = время</div>
       </div>
@@ -312,6 +390,9 @@ export default function GlobeScene({ active = false }) {
               {hovered.year} · {hovered.season === 'winter' ? 'Зимние' : 'Летние'}
             </span>
             <span className="tooltip__country">{countryName(hovered.countryCode)}</span>
+            {hovered.cityCount > 1 && (
+              <span className="tooltip__count">Игр в городе: {hovered.cityCount}</span>
+            )}
             {hovered.cancelled && (
               <span className="tooltip__cancelled">Игры не состоялись</span>
             )}
@@ -320,8 +401,8 @@ export default function GlobeScene({ active = false }) {
       </div>
 
       <Timeline
-        games={HELD_GAMES}
-        cancelledGames={CANCELLED_GAMES}
+        games={seasonGames}
+        cancelledGames={cancelledSeasonGames}
         time={time}
         activeId={activeId}
         playing={playing}
@@ -331,9 +412,9 @@ export default function GlobeScene({ active = false }) {
         onTogglePlay={togglePlay}
       />
 
-      <CancelledNotice time={time} games={CANCELLED_GAMES} selected={selected} />
+      <CancelledNotice time={time} games={cancelledSeasonGames} selected={selected} />
 
-      <MedalRace games={HELD_GAMES} time={time} />
+      <MedalRace games={seasonGames} time={time} season={seasonFilter} />
 
       <SoundToggle />
 
@@ -351,7 +432,12 @@ export default function GlobeScene({ active = false }) {
         <span className="map-toggle__label">{mapMode ? 'Глобус' : 'Карта'}</span>
       </button>
 
-      <EventCard event={selected} onClose={() => setSelected(null)} />
+      <EventCard
+        event={selected}
+        historyGames={cardGames}
+        onNavigate={handleSelect}
+        onClose={() => setSelected(null)}
+      />
 
       <MascotGallery
         open={mascotsOpen}

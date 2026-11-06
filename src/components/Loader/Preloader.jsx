@@ -86,8 +86,8 @@ export default function Preloader({ onComplete }) {
           ))}
         </svg>
 
-        <div className="preloader__title">OLYMPIC GAMES</div>
-        <div className="preloader__subtitle">An interactive journey through history</div>
+        <div className="preloader__title">ОЛИМПИЙСКИЕ ИГРЫ</div>
+        <div className="preloader__subtitle">Интерактивное путешествие сквозь историю</div>
 
         <div className="preloader__bar">
           <span className="preloader__bar-fill" style={{ width: `${progress}%` }} />

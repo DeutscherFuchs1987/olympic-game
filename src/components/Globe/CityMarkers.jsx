@@ -37,9 +37,6 @@ export default function CityMarkers({
   const tmpPoint = useMemo(() => new THREE.Vector3(), [])
   const worldPoint = useMemo(() => new THREE.Vector3(), [])
   const displayPoint = useMemo(() => new THREE.Vector3(), [])
-  const scales = useRef(
-    cities.map((c) => (c.year <= revealYear ? 1 : GHOST_SCALE)),
-  )
   const downPos = useRef({ x: 0, y: 0 })
   const [hoveredId, setHoveredId] = useState(null)
   const camera = useThree((s) => s.camera)
@@ -75,6 +72,48 @@ export default function CityMarkers({
     () => revealed.map((value) => (value ? '1' : '0')).join(''),
     [revealed],
   )
+
+  // One marker per physical city. London 1908/1948/2012 share one exact point;
+  // the active/latest Game is the representative, so the marker never drifts
+  // into the English Channel.
+  const cityGroups = useMemo(() => {
+    const groups = new Map()
+    cities.forEach((city, index) => {
+      const key = `${city.lat.toFixed(4)},${city.lon.toFixed(4)}`
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key).push(index)
+    })
+    return [...groups.values()]
+  }, [cities])
+
+  const cityCounts = useMemo(() => {
+    const counts = new Array(cities.length).fill(1)
+    cityGroups.forEach((group) => {
+      group.forEach((index) => { counts[index] = group.length })
+    })
+    return counts
+  }, [cities.length, cityGroups])
+
+  const representative = useMemo(() => {
+    const flags = new Array(cities.length).fill(false)
+    for (const group of cityGroups) {
+      const selected = group.find((index) => cities[index].id === selectedId)
+      const past = group.filter((index) => cities[index].year <= revealYear)
+      const chosen = selected ?? (past.length ? past[past.length - 1] : group[0])
+      if (chosen != null) flags[chosen] = true
+    }
+    return flags
+  }, [cities, cityGroups, selectedId, revealYear])
+
+  const scales = useRef(
+    cities.map((city, index) => (
+      representative[index] ? (city.year <= revealYear ? 1 : GHOST_SCALE) : 0
+    )),
+  )
+
+  useEffect(() => {
+    if (hoveredId != null && !representative[hoveredId]) setHoveredId(null)
+  }, [hoveredId, representative])
 
   useEffect(() => {
     const onDown = (e) => {
@@ -116,7 +155,9 @@ export default function CityMarkers({
 
     const n = Math.min(cities.length, positions.length)
     if (scales.current.length !== cities.length) {
-      scales.current = revealed.map((value) => (value ? 1 : GHOST_SCALE))
+      scales.current = cities.map((city, index) => (
+        representative[index] ? (city.year <= revealYear ? 1 : GHOST_SCALE) : 0
+      ))
     }
 
     const pulse = 1 + 0.1 * Math.sin(state.clock.elapsedTime * 2.4)
@@ -136,11 +177,13 @@ export default function CityMarkers({
         ? 2.05
         : isSelected
           ? 1.6
-          : !revealed[i]
-            ? GHOST_SCALE
-            : visited[i]
-              ? 1.12
-              : 1
+          : !representative[i]
+            ? 0
+            : !revealed[i]
+              ? GHOST_SCALE
+              : visited[i]
+                ? 1.12
+                : 1
       const cur = scales.current[i] ?? 0
       scales.current[i] = cur + (target - cur) * k
 
@@ -163,7 +206,9 @@ export default function CityMarkers({
       hit.setMatrixAt(i, dummy.matrix)
 
       if (visit) {
-        dummy.scale.setScalar(visited[i] && revealed[i] ? size * 1.55 * pulse : 0)
+        dummy.scale.setScalar(
+          representative[i] && visited[i] && revealed[i] ? size * 1.55 * pulse : 0,
+        )
         dummy.updateMatrix()
         visit.setMatrixAt(i, dummy.matrix)
       }
@@ -179,6 +224,7 @@ export default function CityMarkers({
   const visibleAt = (instanceId) => {
     const mesh = hitRef.current
     if (!mesh || instanceId == null || !positions[instanceId]) return false
+    if (!representative[instanceId]) return false
     const morph = morphRef?.current ?? 0
     tmpPoint.copy(positions[instanceId]).lerp(mapPositions[instanceId], morph)
     mesh.localToWorld(tmpPoint)
@@ -198,7 +244,10 @@ export default function CityMarkers({
     }
     if (id !== hoveredId) setHoveredId(id)
     document.body.style.cursor = 'pointer'
-    onHover?.(cities[id], { x: e.clientX, y: e.clientY })
+    onHover?.(
+      { ...cities[id], cityCount: cityCounts[id] },
+      { x: e.clientX, y: e.clientY },
+    )
   }
 
   const handleOut = (e) => {

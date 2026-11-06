@@ -62,16 +62,28 @@ export function countryName(code) {
   return COUNTRIES[code]?.ru ?? code ?? ''
 }
 
-export function flagUrl(code) {
+export function flagSources(code) {
   const c = COUNTRIES[code]
-  if (!c) return null
-  if (c.iso) return `https://flagcdn.com/w40/${c.iso}.png`
-  if (c.file) return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + c.file
-  return null
+  if (!c) return []
+
+  const sources = []
+  if (c.iso) {
+    // jsDelivr is usually reachable where flagcdn is not. The PNG is a fallback.
+    sources.push(`https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/flags/4x3/${c.iso}.svg`)
+    sources.push(`https://flagcdn.com/w80/${c.iso}.png`)
+  }
+  if (c.file) {
+    sources.push('https://commons.wikimedia.org/wiki/Special:FilePath/' + c.file)
+  }
+  return sources
+}
+
+export function flagUrl(code) {
+  return flagSources(code)[0] ?? null
 }
 
 export function flagSrcSet(code) {
-  const iso = COUNTRIES[code]?.iso
-  if (!iso) return undefined
-  return `https://flagcdn.com/w40/${iso}.png 1x, https://flagcdn.com/w80/${iso}.png 2x`
+  const c = COUNTRIES[code]
+  if (!c?.iso) return undefined
+  return `https://flagcdn.com/w40/${c.iso}.png 1x, https://flagcdn.com/w80/${c.iso}.png 2x`
 }
