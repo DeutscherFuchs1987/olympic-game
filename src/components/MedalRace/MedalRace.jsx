@@ -1,36 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { getMedals } from '../../data/olympics.js'
-import { flagSources, countryName } from '../../data/countries.js'
+import { countryName } from '../../data/countries.js'
+import CountryFlag from '../Common/CountryFlag.jsx'
 
 const TOP_N = 8
 const SEASON_LABEL = { summer: 'Летние', winter: 'Зимние', all: 'Все' }
-
-function Flag({ code }) {
-  const sources = useMemo(() => flagSources(code), [code])
-  const [index, setIndex] = useState(0)
-
-  useEffect(() => {
-    setIndex(0)
-  }, [code])
-
-  const src = sources[index]
-  if (!src) return <span className="race-flag race-flag--code">{code}</span>
-
-  return (
-    <img
-      className="race-flag"
-      src={src}
-      width={22}
-      height={16}
-      alt=""
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      draggable={false}
-      onError={() => setIndex((value) => value + 1)}
-    />
-  )
-}
 
 function standingsUpTo(games, count) {
   const acc = new Map()
@@ -117,7 +92,7 @@ export default function MedalRace({ games, time, season = 'all' }) {
                 >
                   <div className="race-row__head">
                     <span className="race-rank">{i + 1}</span>
-                    <Flag code={c.code} />
+                    <CountryFlag code={c.code} className="race-flag" />
                     <span className="race-name" title={countryName(c.code)}>
                       {countryName(c.code)}
                     </span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { SEASON_COLOR, getEra, getMedals } from '../../data/olympics'
 import { countryName } from '../../data/countries'
+import CountryFlag from '../Common/CountryFlag.jsx'
 import { cityRu } from '../../data/wikiTitles'
 import { useWikiImage, useWikiGallery, useGamesInfo } from '../../hooks/useWikiImage.js'
 
@@ -78,16 +79,11 @@ function About({ loading, info }) {
 
   return (
     <section className="event-card__about">
-      <div className="event-card__section-title">Об этих Играх</div>
+      <div className="event-card__section-title">История Игр</div>
       {loading ? (
         <div className="event-card__section-loading">загрузка…</div>
       ) : (
         <p className="about__text">{info.extract}</p>
-      )}
-      {info?.page && (
-        <a className="about__link" href={info.page} target="_blank" rel="noreferrer">
-          Википедия →
-        </a>
       )}
     </section>
   )
@@ -181,6 +177,9 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
   const gameIndex = event ? historyGames.findIndex((game) => game.id === event.id) : -1
   const previousGame = gameIndex > 0 ? historyGames[gameIndex - 1] : null
   const nextGame = gameIndex >= 0 && gameIndex < historyGames.length - 1 ? historyGames[gameIndex + 1] : null
+  const sameCityGames = event
+    ? historyGames.filter((game) => game.id !== event.id && game.city === event.city)
+    : []
 
   const city = useWikiImage(event?.city)
   const games = useGamesInfo(event?.year, event?.season)
@@ -256,12 +255,18 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
 
             <div className="event-card__body">
               <div className="event-card__city">{cityRu(event.city)}</div>
-              <div className="event-card__country">
-                {countryName(event.countryCode) || event.country}
-                {event.countryCode ? ` · ${event.countryCode}` : ''}
+              <div className="event-card__country-row">
+                {event.countryCode && (
+                  <CountryFlag code={event.countryCode} className="event-card__flag" />
+                )}
+                <span className="event-card__country">
+                  {countryName(event.countryCode) || event.country}
+                  {event.countryCode ? ` · ${event.countryCode}` : ''}
+                </span>
               </div>
 
               <div className="event-card__era">{era.label}</div>
+              {era.tagline && <p className="event-card__era-tagline">{era.tagline}</p>}
 
               {event.mascot && (
                 <div className="event-card__row">
@@ -270,10 +275,38 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
                 </div>
               )}
 
-              {event.fact && <p className="event-card__fact">{event.fact}</p>}
+              {event.fact && (
+                <>
+                  <div className="event-card__section-title event-card__fact-title">Факт</div>
+                  <p className="event-card__fact">{event.fact}</p>
+                </>
+              )}
 
               {event.cancelled && (
                 <div className="event-card__cancelled">Эта Игра не состоялась.</div>
+              )}
+
+              {sameCityGames.length > 0 && (
+                <section className="event-card__same-city">
+                  <div className="event-card__section-title">Игры в этом городе</div>
+                  <div className="event-card__chips">
+                    {sameCityGames.map((game) => (
+                      <button
+                        key={game.id}
+                        type="button"
+                        className={
+                          'event-card__chip' +
+                          (game.cancelled ? ' event-card__chip--cancelled' : '')
+                        }
+                        onClick={() => onNavigate?.(game)}
+                      >
+                        {game.year} · {game.cancelled
+                          ? 'не состоялись'
+                          : game.season === 'winter' ? 'зимние' : 'летние'}
+                      </button>
+                    ))}
+                  </div>
+                </section>
               )}
 
               <div className="event-card__medals">
