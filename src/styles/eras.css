@@ -149,15 +149,15 @@
 /* ---------- Colour grading of the 3D scene ---------- */
 
 .scene__canvas {
-  transition: filter 0.9s ease;
+  transition: filter 0.55s ease;
 }
 
-.scene.era-origin .scene__canvas { filter: var(--era-filter); }
-.scene.era-interwar .scene__canvas { filter: var(--era-filter); }
-.scene.era-postwar .scene__canvas { filter: var(--era-filter); }
-.scene.era-cold .scene__canvas { filter: var(--era-filter); }
-.scene.era-modern .scene__canvas { filter: var(--era-filter); }
-.scene.era-contemporary .scene__canvas { filter: var(--era-filter); }
+/* Permanent full-screen filters are expensive on low-end GPUs. The ambient
+   era mood comes from the cheap tint/grain layers; the strong canvas grade is
+   applied only during the short chapter-card moment. */
+.scene.scene--era-chapter .scene__canvas {
+  filter: var(--era-filter);
+}
 
 .event-card__photo {
   transition: filter 0.7s ease;
@@ -243,7 +243,7 @@
   background-size: 180px 180px;
   opacity: var(--era-grain);
   mix-blend-mode: overlay;
-  animation: era-grain 0.6s steps(1) infinite;
+  animation: era-grain 1.4s steps(1) infinite;
 }
 
 .atmosphere__dust {
@@ -251,7 +251,6 @@
   background-size: 560px 560px;
   opacity: var(--era-dust);
   mix-blend-mode: screen;
-  animation: era-dust 22s linear infinite;
 }
 
 .atmosphere__leak {
@@ -284,7 +283,6 @@
   );
   opacity: var(--era-scan);
   mix-blend-mode: overlay;
-  animation: era-scanlines 9s linear infinite;
 }
 
 .atmosphere__sweep {
@@ -305,7 +303,6 @@
   opacity: var(--era-grid);
   -webkit-mask-image: radial-gradient(78% 70% at 50% 52%, #000 8%, transparent 76%);
   mask-image: radial-gradient(78% 70% at 50% 52%, #000 8%, transparent 76%);
-  animation: era-grid 26s linear infinite;
 }
 
 .atmosphere__frame {

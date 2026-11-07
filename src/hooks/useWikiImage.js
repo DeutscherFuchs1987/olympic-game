@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { cityRu, gamesTitleRu, gamesTitleEn } from '../data/wikiTitles.js'
+import { isSafeImage, isSensitiveGames } from '../data/contentPolicy.js'
 
 const summaryCache = new Map()
 const galleryCache = new Map()
@@ -71,22 +72,25 @@ async function loadSummary(ruTitle) {
   const thumb = cleanUrl(json.thumbnail?.source)
   const orig = cleanUrl(json.originalimage?.source)
   const page = json.content_urls?.desktop?.page || ''
+  const context = `${json.description || ''} ${json.title || ''}`
+  const safeThumb = thumb && isSafeImage(extractFileName(thumb), context) ? thumb : ''
+  const safeOrig = orig && isSafeImage(extractFileName(orig), context) ? orig : ''
 
   // Order matters: fast CDN thumbnail first, then the full-resolution original.
-  const sources = unique([thumb, orig])
+  const sources = unique([safeThumb, safeOrig])
 
   if (!sources.length) return { src: null, sources: [], page, title: json.title }
 
   const image = {
     src: sources[0],
     sources,
-    full: orig || thumb,
+    full: safeOrig || safeThumb,
     page,
     title: json.title,
     description: json.description || '',
   }
 
-  const fileName = extractFileName(orig || thumb)
+  const fileName = extractFileName(safeOrig || safeThumb)
   image.link = fileName
     ? 'https://commons.wikimedia.org/wiki/File:' + encodeURIComponent(fileName)
     : page
@@ -124,6 +128,7 @@ async function loadMediaList(lang, title) {
     if (it.type && it.type !== 'image') continue
     const name = it.title || ''
     if (!/\.(jpe?g|png|webp)$/i.test(name)) continue
+    if (!isSafeImage(name, it.caption?.text)) continue
     if (GALLERY_SKIP.test(name.replace(/^File:/, '').replace(/^Файл:/, ''))) continue
     const sources = srcsetSources(it.srcset)
     if (!sources.length) continue
@@ -143,6 +148,7 @@ async function loadMediaList(lang, title) {
 // modern editions); fall back to the host city only if the article has none.
 async function loadGallery(key) {
   const [year, season, city] = key.split('|')
+  if (isSensitiveGames(year)) return []
   let photos = await loadMediaList('en', gamesTitleEn(Number(year), season))
   if (photos.length === 0) photos = await loadMediaList('ru', cityRu(city))
   return photos
@@ -157,11 +163,17 @@ async function loadGamesInfo(key) {
   )
   const thumb = cleanUrl(json.thumbnail?.source)
   const orig = cleanUrl(json.originalimage?.source)
+  const safe = !isSensitiveGames(year)
+  const context = `${json.description || ''} ${json.extract || ''}`
+  const sources = safe
+    ? unique([thumb, orig].filter((url) => url && isSafeImage(extractFileName(url), context)))
+    : []
+
   return {
     extract: stripHtml(json.extract),
     description: json.description || '',
     page: json.content_urls?.desktop?.page || '',
-    emblem: { sources: unique([thumb, orig]) },
+    emblem: { sources },
   }
 }
 

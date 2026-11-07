@@ -116,6 +116,12 @@ export default function CityMarkers({
   }, [hoveredId, representative])
 
   useEffect(() => {
+    for (const ref of [outlineRef, ringRef, dotRef, hitRef, visitRef]) {
+      ref.current?.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+    }
+  }, [])
+
+  useEffect(() => {
     const onDown = (e) => {
       downPos.current = { x: e.clientX, y: e.clientY }
     }

@@ -82,7 +82,7 @@ const SceneContents = ({
       <directionalLight position={[5, 3, 5]} intensity={1.5} />
       <pointLight position={[-6, -2, -4]} intensity={0.4} color="#4aa3ff" />
 
-      <Stars radius={90} depth={50} count={4000} factor={4} saturation={0} fade speed={0.4} />
+      <Stars radius={90} depth={50} count={1800} factor={4} saturation={0} fade speed={0.4} />
 
       <Globe
         cities={cities}
@@ -448,9 +448,9 @@ export default function GlobeScene({ active = false }) {
     <div className={`scene era-${era.id}${active ? ' scene--active' : ''}${eraChapterOpen ? ' scene--era-chapter' : ''}${mapMode ? ' scene--map' : ''}`}>
       <div className="scene__canvas" onWheel={handleWheel}>
         <Canvas
-          dpr={[1, 2]}
+          dpr={[1, 1.35]}
           camera={{ position: [0, 2.4, 5.6], fov: 45 }}
-          gl={{ antialias: true }}
+          gl={{ antialias: true, powerPreference: 'high-performance' }}
         >
           <MemoScene
             cities={seasonGames}
