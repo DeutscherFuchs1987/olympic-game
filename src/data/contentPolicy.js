@@ -14,3 +14,37 @@ const SENSITIVE_IMAGE =
 export function isSafeImage(...parts) {
   return !SENSITIVE_IMAGE.test(parts.filter(Boolean).join(' '))
 }
+
+// Safe modern photos used instead of 1930s propaganda imagery. These are
+// current views of the Berlin Olympiastadion, not historical Nazi footage.
+const BERLIN_STADIUM_PHOTOS = [
+  {
+    id: 'berlin-olympiastadion-1',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b4/Berlin_-_Olympiastadion4.jpg/960px-Berlin_-_Olympiastadion4.jpg',
+    original: 'https://upload.wikimedia.org/wikipedia/commons/b/b4/Berlin_-_Olympiastadion4.jpg',
+    link: 'https://commons.wikimedia.org/wiki/File:Berlin_-_Olympiastadion4.jpg',
+  },
+  {
+    id: 'berlin-olympiastadion-2',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b5/Berlin_Jun_2012_026_%28Olympiastadion%29.JPG/960px-Berlin_Jun_2012_026_%28Olympiastadion%29.JPG',
+    original: 'https://upload.wikimedia.org/wikipedia/commons/b/b5/Berlin_Jun_2012_026_%28Olympiastadion%29.JPG',
+    link: 'https://commons.wikimedia.org/wiki/File:Berlin_Jun_2012_026_(Olympiastadion).JPG',
+  },
+]
+
+export function safeGamesMedia(year) {
+  if (Number(year) !== 1936) return null
+  const photos = BERLIN_STADIUM_PHOTOS.map((photo) => ({
+    id: photo.id,
+    sources: [photo.thumb, photo.original],
+    link: photo.link,
+  }))
+  return {
+    hero: photos[0].sources,
+    credit: {
+      href: BERLIN_STADIUM_PHOTOS[0].link,
+      label: 'Олимпийский стадион Берлина · Wikimedia Commons',
+    },
+    photos,
+  }
+}

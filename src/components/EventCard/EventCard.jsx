@@ -5,7 +5,7 @@ import { countryName } from '../../data/countries'
 import CountryFlag from '../Common/CountryFlag.jsx'
 import { cityRu } from '../../data/wikiTitles'
 import { useWikiImage, useWikiGallery, useGamesInfo } from '../../hooks/useWikiImage.js'
-import { isSensitiveGames } from '../../data/contentPolicy.js'
+import { isSensitiveGames, safeGamesMedia } from '../../data/contentPolicy.js'
 
 const SEASON_RU = { summer: 'Летние', winter: 'Зимние' }
 
@@ -175,6 +175,7 @@ function Lightbox({ photos, index, onClose, onNav }) {
 export default function EventCard({ event, onClose, historyGames = [], onNavigate }) {
   const era = event ? getEra(event.year) : null
   const sensitive = event ? isSensitiveGames(event.year) : false
+  const safeMedia = sensitive ? safeGamesMedia(event?.year) : null
   const medals = event ? getMedals(event.id) : []
   const gameIndex = event ? historyGames.findIndex((game) => game.id === event.id) : -1
   const previousGame = gameIndex > 0 ? historyGames[gameIndex - 1] : null
@@ -209,9 +210,10 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
     return () => window.removeEventListener('keydown', onKey)
   }, [event, lightbox, onClose])
 
-  const heroPhoto = gallery.photos[0] ?? null
+  const displayPhotos = sensitive ? (safeMedia?.photos ?? []) : gallery.photos
+  const heroPhoto = displayPhotos[0] ?? null
   const heroSources = sensitive
-    ? []
+    ? (safeMedia?.hero ?? [])
     : [
         ...(heroPhoto?.sources ?? []),
         ...(games.info?.emblem?.sources ?? []),
@@ -221,7 +223,7 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
     && (gallery.loading || games.loading || city.loading)
     && heroSources.length === 0
   const heroCredit = sensitive
-    ? null
+    ? (safeMedia?.credit ?? null)
     : heroPhoto
       ? { href: heroPhoto.link, label: 'Фото · Wikimedia Commons' }
       : games.info?.page
@@ -235,9 +237,9 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
 
   const nav = (dir) =>
     setLightbox((i) =>
-      i == null || gallery.photos.length === 0
+      i == null || displayPhotos.length === 0
         ? i
-        : (i + dir + gallery.photos.length) % gallery.photos.length,
+        : (i + dir + displayPhotos.length) % displayPhotos.length,
     )
 
   return (
@@ -349,7 +351,11 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
 
               <About loading={games.loading} info={games.info} />
 
-              <Gallery loading={gallery.loading} photos={gallery.photos} onOpen={setLightbox} />
+              <Gallery
+                loading={sensitive ? false : gallery.loading}
+                photos={displayPhotos}
+                onOpen={setLightbox}
+              />
 
               {(previousGame || nextGame) && (
                 <div className="event-card__nav">
@@ -380,7 +386,7 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
       <AnimatePresence>
         {event && lightbox != null && (
           <Lightbox
-            photos={gallery.photos}
+            photos={displayPhotos}
             index={lightbox}
             onClose={() => setLightbox(null)}
             onNav={nav}
