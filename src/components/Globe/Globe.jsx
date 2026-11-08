@@ -107,6 +107,7 @@ function LabelProjector({ position, mapPosition, morphRef, groupRef, labelRef })
   const camera = useThree((s) => s.camera)
   const size = useThree((s) => s.size)
   const point = useMemo(() => new Vector3(), [])
+  const last = useRef({ x: null, y: null })
 
   useFrame(() => {
     const el = labelRef?.current
@@ -130,11 +131,22 @@ function LabelProjector({ position, mapPosition, morphRef, groupRef, labelRef })
     }
 
     point.project(camera)
-    const x = (point.x * 0.5 + 0.5) * size.width
-    const y = (-point.y * 0.5 + 0.5) * size.height
+    if (point.z >= 1) {
+      el.style.opacity = '0'
+      return
+    }
 
-    el.style.transform = `translate(-50%, -100%) translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`
-    el.style.opacity = point.z < 1 ? '1' : '0'
+    // Round to whole pixels and skip identical values. This prevents the
+    // text shimmering while the camera is easing between cities.
+    const x = Math.round((point.x * 0.5 + 0.5) * size.width)
+    const y = Math.round((-point.y * 0.5 + 0.5) * size.height)
+
+    if (last.current.x !== x || last.current.y !== y) {
+      last.current.x = x
+      last.current.y = y
+      el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -100%)`
+    }
+    el.style.opacity = '1'
   })
 
   return null
@@ -221,6 +233,7 @@ export default function Globe({
   playing = false,
   seasonFilter = 'all',
   followUntilRef,
+  previewOpen = false,
   controlsRef,
   groupRef,
   labelRef,
@@ -376,7 +389,7 @@ export default function Globe({
       />
 
       <FollowCam
-        playing={playing}
+        playing={playing && !previewOpen}
         games={cities}
         activeGame={activeGame}
         timeRef={timeRef}

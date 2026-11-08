@@ -34,12 +34,12 @@ export function latLonToVector3(lat, lon, radius = 1, target = new THREE.Vector3
 
 /** Games that actually took place (excludes cancelled editions). */
 export const HELD_GAMES = GAMES.filter((g) => !g.cancelled).sort(
-  (a, b) => a.year - b.year || (a.season === 'winter' ? -1 : 1),
+  (a, b) => a.year - b.year || (a.season === 'winter' ? 1 : -1),
 )
 
 /** Editions that were cancelled (1916, 1940, 1944) — shown as ghost markers. */
 export const CANCELLED_GAMES = GAMES.filter((g) => g.cancelled).sort(
-  (a, b) => a.year - b.year || (a.season === 'winter' ? -1 : 1),
+  (a, b) => a.year - b.year || (a.season === 'winter' ? 1 : -1),
 )
 
 export function colorForSeason(season) {

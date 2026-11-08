@@ -71,6 +71,8 @@ const SceneContents = ({
   playing,
   seasonFilter,
   followUntilRef,
+  previewOpen,
+  onUserOrbit,
 }) => {
   const controlsRef = useRef()
   const groupRef = useRef()
@@ -94,7 +96,7 @@ const SceneContents = ({
         revealYear={revealYear}
         timelineYear={timelineYear}
         visitedIds={visitedIds}
-        paused={!!hovered || !!selected || mapMode || morphing || playing}
+        paused={!!hovered || !!selected || mapMode || morphing || playing || previewOpen}
         mapMode={mapMode}
         morphing={morphing}
         morphRef={morphRef}
@@ -103,6 +105,7 @@ const SceneContents = ({
         playing={playing}
         seasonFilter={seasonFilter}
         followUntilRef={followUntilRef}
+        previewOpen={previewOpen}
         controlsRef={controlsRef}
         groupRef={groupRef}
         labelRef={labelRef}
@@ -121,7 +124,8 @@ const SceneContents = ({
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enabled={!mapMode && !morphing && !playing}
+        enabled={!mapMode && !morphing && (!playing || previewOpen)}
+        onStart={onUserOrbit}
         enablePan={false}
         enableZoom={false}
         enableDamping
@@ -147,6 +151,7 @@ export default function GlobeScene({ active = false }) {
   const [morphing, setMorphing] = useState(false)
   const [seasonFilter, setSeasonFilter] = useState('all')
   const [previewGame, setPreviewGame] = useState(null)
+  const [playGame, setPlayGame] = useState(null)
   const morphRef = useRef(0)
   const tooltipRef = useRef()
   const labelRef = useRef()
@@ -172,16 +177,16 @@ export default function GlobeScene({ active = false }) {
   )
   const cardGames = useMemo(
     () => [...seasonGames, ...cancelledSeasonGames].sort(
-      (a, b) => a.year - b.year || (a.season === 'winter' ? -1 : 1),
+      (a, b) => a.year - b.year || (a.season === 'winter' ? 1 : -1),
     ),
     [seasonGames, cancelledSeasonGames],
   )
 
   const playingRef = useRef(false)
   const seasonGamesRef = useRef(seasonGames)
-  const previewGameRef = useRef(null)
-  const previewHoldRef = useRef(false)
-  const dwellTimer = useRef(null)
+  const playTargetRef = useRef(null)
+  const playStoppedRef = useRef(false)
+  const switchTimer = useRef(null)
   const advanceRef = useRef(null)
 
   useEffect(() => {
@@ -192,40 +197,68 @@ export default function GlobeScene({ active = false }) {
     seasonGamesRef.current = seasonGames
   }, [seasonGames])
 
-  useEffect(() => {
-    previewGameRef.current = previewGame
-  }, [previewGame])
-
-  const clearDwell = useCallback(() => {
-    clearTimeout(dwellTimer.current)
-    dwellTimer.current = null
-  }, [])
-
-  const scheduleAdvance = useCallback((delay = PREVIEW_DWELL) => {
-    clearTimeout(dwellTimer.current)
-    dwellTimer.current = setTimeout(() => {
-      if (!playingRef.current || previewHoldRef.current) return
-      setPreviewGame(null)
-      advanceRef.current?.()
-    }, delay)
+  const clearPlayCursor = useCallback(() => {
+    playTargetRef.current = null
+    playStoppedRef.current = false
   }, [])
 
   const advancePlayback = useCallback(() => {
     if (!playingRef.current) return
     const list = seasonGamesRef.current
-    const current = timeRef.current
-    const next = list.find((game) => game.year > current + 0.02)
-    if (!next) {
+    if (!list.length) {
       setPlaying(false)
       playingRef.current = false
       setPreviewGame(null)
+      setPlayGame(null)
+      clearPlayCursor()
       return
     }
 
-    const from = current
-    const duration = Math.max(0.9, (next.year - from) * PLAY_SECONDS_PER_YEAR)
+    let target = playTargetRef.current
+    if (target == null) {
+      target = list.findIndex((game) => game.year > timeRef.current + 0.02)
+      if (target < 0) target = 0
+    } else if (playStoppedRef.current) {
+      target += 1
+    }
+
+    if (target < 0 || target >= list.length) {
+      setPlaying(false)
+      playingRef.current = false
+      setPreviewGame(null)
+      setPlayGame(null)
+      clearPlayCursor()
+      return
+    }
+
+    playTargetRef.current = target
+    playStoppedRef.current = false
+    const next = list[target]
+    setPlayGame(next)
+
+    clearTimeout(switchTimer.current)
+
+    const from = timeRef.current
+    const sameYear = Math.abs(next.year - from) < 0.02
+    const duration = sameYear
+      ? 1.1
+      : Math.max(0.9, (next.year - from) * PLAY_SECONDS_PER_YEAR)
+
     gsap.killTweensOf(playRef.current)
     playRef.current.t = from
+
+    if (sameYear) {
+      setTime(next.year)
+      // Give the camera a moment to fly from the summer host to the winter
+      // host before freezing the view on the stop card.
+      switchTimer.current = setTimeout(() => {
+        if (!playingRef.current || playTargetRef.current !== target) return
+        setPreviewGame(next)
+        playStoppedRef.current = true
+      }, 1000)
+      return
+    }
+
     gsap.to(playRef.current, {
       t: next.year,
       duration,
@@ -235,18 +268,19 @@ export default function GlobeScene({ active = false }) {
         if (!playingRef.current) return
         setTime(next.year)
         setPreviewGame(next)
-        scheduleAdvance()
+        playStoppedRef.current = true
       },
     })
-  }, [setTime, scheduleAdvance])
+  }, [setTime, clearPlayCursor])
 
   useEffect(() => {
     advanceRef.current = advancePlayback
   }, [advancePlayback])
 
   const nearest = useMemo(() => nearestByYear(time, seasonGames), [time, seasonGames])
-  const activeGame = selected ?? nearest
+  const activeGame = selected ?? playGame ?? nearest
   const activeId = activeGame?.id ?? null
+  const previewOpen = !!previewGame
   const revealYear = Math.floor(time + 0.5)
   const timelineYear = Math.floor(time)
   const era = useMemo(() => getEra(activeGame?.year ?? time), [activeGame, time])
@@ -255,8 +289,10 @@ export default function GlobeScene({ active = false }) {
   const toggleSeason = useCallback((next) => {
     if (next === seasonFilter) return
     gsap.killTweensOf(playRef.current)
-    clearDwell()
+    clearTimeout(switchTimer.current)
     setPreviewGame(null)
+    setPlayGame(null)
+    clearPlayCursor()
     setPlaying(false)
     playingRef.current = false
     setSeasonFilter(next)
@@ -267,7 +303,7 @@ export default function GlobeScene({ active = false }) {
       followUntilRef.current = performance.now() + 1100
       setTime(target.year)
     }
-  }, [seasonFilter, setTime, timeRef, clearDwell])
+  }, [seasonFilter, setTime, timeRef, clearPlayCursor])
 
   useEffect(() => {
     setEraMood(era.id)
@@ -294,10 +330,12 @@ export default function GlobeScene({ active = false }) {
         setSeasonFilter(game.season)
       }
       gsap.killTweensOf(playRef.current)
-      clearDwell()
+      clearTimeout(switchTimer.current)
       playingRef.current = false
       setPlaying(false)
       setPreviewGame(null)
+      setPlayGame(null)
+      clearPlayCursor()
       setSelected(game)
       setTime(game.year)
       playSelect(game.season)
@@ -308,23 +346,25 @@ export default function GlobeScene({ active = false }) {
         return next
       })
     },
-    [seasonFilter, setTime, clearDwell],
+    [seasonFilter, setTime, clearPlayCursor],
   )
 
   const handleScrub = useCallback(
     (year) => {
       if (playingRef.current) {
         gsap.killTweensOf(playRef.current)
-        clearDwell()
+        clearTimeout(switchTimer.current)
         playingRef.current = false
         setPlaying(false)
         setPreviewGame(null)
+        setPlayGame(null)
+        clearPlayCursor()
       }
       followUntilRef.current = performance.now() + 1100
       setTime(year)
       closeIfFar(year)
     },
-    [setTime, closeIfFar, clearDwell],
+    [setTime, closeIfFar, clearPlayCursor],
   )
 
   const handleCommit = useCallback(
@@ -339,31 +379,31 @@ export default function GlobeScene({ active = false }) {
     (e) => {
       if (playingRef.current) {
         gsap.killTweensOf(playRef.current)
-        clearDwell()
+        clearTimeout(switchTimer.current)
         playingRef.current = false
         setPlaying(false)
         setPreviewGame(null)
+        setPlayGame(null)
+        clearPlayCursor()
       }
       followUntilRef.current = performance.now() + 1100
       onWheel(e)
       closeIfFar(timeRef.current)
     },
-    [onWheel, closeIfFar, timeRef, clearDwell],
+    [onWheel, closeIfFar, timeRef, clearPlayCursor],
   )
 
   const togglePlay = useCallback(() => {
     if (playingRef.current) {
       gsap.killTweensOf(playRef.current)
-      clearDwell()
+      clearTimeout(switchTimer.current)
       playingRef.current = false
       setPlaying(false)
       return
     }
 
-    // Paused on a stop card: pressing play should continue the journey, not
-    // show the same city again.
-    if (previewGameRef.current) {
-      clearDwell()
+    // Paused mid-travel or on a stop card: continue with the existing target.
+    if (playTargetRef.current != null) {
       setPreviewGame(null)
       setPlaying(true)
       playingRef.current = true
@@ -383,46 +423,48 @@ export default function GlobeScene({ active = false }) {
 
     setSelected(null)
     setPreviewGame(null)
-    clearDwell()
     setPlaying(true)
     playingRef.current = true
 
-    const currentGame = list.find((game) => Math.abs(game.year - timeRef.current) < 0.1)
-    if (currentGame) {
-      setPreviewGame(currentGame)
-      scheduleAdvance()
+    const currentIndex = list.findIndex((game) => Math.abs(game.year - from) < 0.1)
+    if (currentIndex >= 0) {
+      playTargetRef.current = currentIndex
+      playStoppedRef.current = true
+      setPlayGame(list[currentIndex])
+      setPreviewGame(list[currentIndex])
     } else {
+      playTargetRef.current = null
+      playStoppedRef.current = false
       advanceRef.current?.()
     }
-  }, [setTime, clearDwell, scheduleAdvance])
+  }, [setTime])
 
   const closePreview = useCallback(() => {
-    clearDwell()
     setPreviewGame(null)
     if (playingRef.current) advanceRef.current?.()
-  }, [clearDwell])
+  }, [])
 
   const continueFromPreview = useCallback(() => {
-    clearDwell()
     setPreviewGame(null)
     if (!playingRef.current) {
       setPlaying(true)
       playingRef.current = true
     }
     advanceRef.current?.()
-  }, [clearDwell])
+  }, [])
 
-  const holdPreview = useCallback(() => {
-    previewHoldRef.current = true
-    clearDwell()
-  }, [clearDwell])
+  const autoAdvance = useCallback(() => {
+    if (!playingRef.current) return
+    continueFromPreview()
+  }, [continueFromPreview])
 
-  const releasePreview = useCallback(() => {
-    previewHoldRef.current = false
-    if (playingRef.current && previewGameRef.current) {
-      scheduleAdvance(1200)
-    }
-  }, [scheduleAdvance])
+  const pauseForOrbit = useCallback(() => {
+    if (!playingRef.current) return
+    gsap.killTweensOf(playRef.current)
+    clearTimeout(switchTimer.current)
+    playingRef.current = false
+    setPlaying(false)
+  }, [])
 
   const toggleMap = useCallback(() => {
     if (morphing) return
@@ -441,7 +483,7 @@ export default function GlobeScene({ active = false }) {
   useEffect(() => () => {
     gsap.killTweensOf(playRef.current)
     gsap.killTweensOf(morphRef)
-    clearTimeout(dwellTimer.current)
+    clearTimeout(switchTimer.current)
   }, [])
 
   return (
@@ -472,6 +514,8 @@ export default function GlobeScene({ active = false }) {
             playing={playing}
             seasonFilter={seasonFilter}
             followUntilRef={followUntilRef}
+            previewOpen={previewOpen}
+            onUserOrbit={pauseForOrbit}
           />
         </Canvas>
       </div>
@@ -579,9 +623,8 @@ export default function GlobeScene({ active = false }) {
         dwellMs={PREVIEW_DWELL}
         onReadMore={() => previewGame && handleSelect(previewGame)}
         onContinue={continueFromPreview}
+        onAutoAdvance={autoAdvance}
         onClose={closePreview}
-        onHoverStart={holdPreview}
-        onHoverEnd={releasePreview}
       />
 
       <EventCard

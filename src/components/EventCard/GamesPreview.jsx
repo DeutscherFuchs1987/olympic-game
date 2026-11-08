@@ -17,9 +17,8 @@ export default function GamesPreview({
   dwellMs = 3400,
   onReadMore,
   onContinue,
+  onAutoAdvance,
   onClose,
-  onHoverStart,
-  onHoverEnd,
 }) {
   const era = game ? getEra(game.year) : null
   const medals = game
@@ -37,8 +36,6 @@ export default function GamesPreview({
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           exit={{ opacity: 0, y: 12, filter: 'blur(6px)' }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          onMouseEnter={onHoverStart}
-          onMouseLeave={onHoverEnd}
         >
           <div className="games-preview__head">
             <span className="games-preview__status">
@@ -84,7 +81,7 @@ export default function GamesPreview({
           )}
 
           <div className="games-preview__progress" aria-hidden="true">
-            <span />
+            <span onAnimationEnd={onAutoAdvance} />
           </div>
 
           <div className="games-preview__actions">
