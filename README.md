@@ -50,3 +50,4 @@ React 19, Vite, React Three Fiber, Three.js, Drei, GSAP, Motion, Tone.js.
 - Текстура Земли: `public/textures/earth-color.jpg`.
 - Фото и статьи подгружаются с Wikimedia Commons / Wikipedia.
 - Флаги подгружаются онлайн с jsDelivr (flag-icons) с резервным источником flagcdn / Wikimedia Commons.
+  dev: DeutscherFuchs1987 && tulenka22
