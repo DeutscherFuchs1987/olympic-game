@@ -1,0 +1,11 @@
+# Amvera Static Web deployment.
+# https://docs.amvera.ru/applications/environments/nodejs-browser.html
+meta:
+  environment: static_web
+  toolchain:
+    name: npm
+    version: "22"
+
+build:
+  artifacts:
+    "dist/*": /
