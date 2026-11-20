@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Billboard } from '@react-three/drei'
 import * as THREE from 'three'
@@ -36,9 +36,9 @@ export default function TorchRelay({
   const trailRef = useRef([])
   const camera = useThree((s) => s.camera)
 
-  // Four-point star with concave sides, like the reference. A ShapeGeometry
-  // keeps it crisp at any size; Billboard makes it face the camera on both the
-  // globe and the flat map.
+  // Small four-point star, still used for the glow and the trail behind the
+  // runner. The runner itself is drawn as a canvas silhouette so the pose
+  // stays readable at this size.
   const starGeometry = useMemo(() => {
     const shape = new THREE.Shape()
     shape.moveTo(0, 1)
@@ -48,6 +48,66 @@ export default function TorchRelay({
     shape.quadraticCurveTo(-0.16, 0.16, 0, 1)
     return new THREE.ShapeGeometry(shape, 16)
   }, [])
+
+  const torchTexture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 256
+    canvas.height = 320
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.shadowColor = 'rgba(252, 177, 49, 0.85)'
+    ctx.shadowBlur = 14
+
+    const stroke = (points, color, width) => {
+      ctx.strokeStyle = color
+      ctx.lineWidth = width
+      ctx.beginPath()
+      points.forEach(([x, y], index) => {
+        if (index === 0) ctx.moveTo(x, y)
+        else ctx.lineTo(x, y)
+      })
+      ctx.stroke()
+    }
+
+    // Legs in a running stride.
+    stroke([[128, 168], [174, 218], [194, 266]], '#fff3c4', 18)
+    stroke([[128, 168], [98, 222], [78, 270]], '#fff3c4', 18)
+    // Torso, arms and head.
+    stroke([[128, 92], [124, 172]], '#fff3c4', 27)
+    stroke([[126, 108], [92, 144]], '#fff3c4', 14)
+    stroke([[128, 108], [162, 88], [180, 72]], '#fff3c4', 14)
+    ctx.fillStyle = '#fff3c4'
+    ctx.beginPath()
+    ctx.arc(128, 58, 22, 0, Math.PI * 2)
+    ctx.fill()
+
+    // Torch handle and flame.
+    stroke([[180, 78], [190, 30]], '#f0dca0', 7)
+    const flame = (cx, cy, outer, inner, color) => {
+      ctx.fillStyle = color
+      ctx.beginPath()
+      ctx.moveTo(cx, cy - outer)
+      ctx.quadraticCurveTo(cx + inner, cy - inner, cx + outer, cy)
+      ctx.quadraticCurveTo(cx + inner, cy + inner, cx, cy + outer)
+      ctx.quadraticCurveTo(cx - inner, cy + inner, cx - outer, cy)
+      ctx.quadraticCurveTo(cx - inner, cy - inner, cx, cy - outer)
+      ctx.closePath()
+      ctx.fill()
+    }
+    flame(190, 17, 25, 5, '#fcb131')
+    flame(190, 17, 12, 2.5, '#fff8d8')
+
+    const texture = new THREE.CanvasTexture(canvas)
+    texture.colorSpace = THREE.SRGBColorSpace
+    texture.needsUpdate = true
+    return texture
+  }, [])
+
+  useEffect(() => () => torchTexture?.dispose(), [torchTexture])
   const sphere = useMemo(() => new THREE.Vector3(), [])
   const flat = useMemo(() => new THREE.Vector3(), [])
   const display = useMemo(() => new THREE.Vector3(), [])
@@ -139,24 +199,31 @@ export default function TorchRelay({
           <meshBasicMaterial
             color="#fcb131"
             transparent
-            opacity={0.16}
+            opacity={0.14}
             blending={THREE.AdditiveBlending}
             depthWrite={false}
             toneMapped={false}
             side={THREE.DoubleSide}
           />
         </mesh>
-        <mesh raycast={() => null} scale={0.08} renderOrder={20} rotation-z={Math.PI / 4}>
-          <primitive object={starGeometry} attach="geometry" />
-          <meshBasicMaterial
-            color="#fff3c4"
-            transparent
-            opacity={1}
-            depthWrite={false}
-            toneMapped={false}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+
+        {torchTexture && (
+          <mesh
+            raycast={() => null}
+            position-y={0.055}
+            renderOrder={20}
+          >
+            <planeGeometry args={[0.11, 0.1375]} />
+            <meshBasicMaterial
+              map={torchTexture}
+              transparent
+              alphaTest={0.02}
+              depthWrite={false}
+              toneMapped={false}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
       </Billboard>
 
       {[0, 1, 2].map((index) => (
