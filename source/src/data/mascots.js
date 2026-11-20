@@ -1,0 +1,208 @@
+// Olympic mascots (gameId -> mascot info + Wikimedia image URLs).
+// `thumb` is a CDN thumbnail for the grid; `full` is the largest variant we
+// found for the detail view. `title` is the English Wikipedia article.
+// `name`/`type` are Russian labels for the interface.
+
+export const MASCOTS = {
+  '1972-summer': {
+    name: 'Вальди',
+    type: 'такса',
+    title: 'Waldi',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/35/Waldi%2C_Olympic_logo_1972.svg/330px-Waldi%2C_Olympic_logo_1972.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/35/Waldi%2C_Olympic_logo_1972.svg/330px-Waldi%2C_Olympic_logo_1972.svg.png',
+  },
+  '1976-summer': {
+    name: 'Амик',
+    type: 'бобр',
+    title: 'Amik',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d0/Amik-SummerOlympics1976.svg/330px-Amik-SummerOlympics1976.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/d/d0/Amik-SummerOlympics1976.svg/330px-Amik-SummerOlympics1976.svg.png',
+  },
+  '1980-summer': {
+    name: 'Миша',
+    type: 'бурый медведь',
+    title: 'Misha',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/1980_USSR_stamp_Olympic_mascot.jpg/330px-1980_USSR_stamp_Olympic_mascot.jpg',
+    full: 'https://upload.wikimedia.org/wikipedia/commons/0/02/1980_USSR_stamp_Olympic_mascot.jpg',
+  },
+  '1984-summer': {
+    name: 'Сэм',
+    type: 'белоголовый орлан',
+    title: 'Sam (mascot)',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/a/a1/SamOlyEagle1.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/a/a1/SamOlyEagle1.png',
+  },
+  '1988-summer': {
+    name: 'Ходори',
+    type: 'амурский тигр',
+    title: 'Hodori and Gomdoori',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/1/16/Hodori.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/1/16/Hodori.png',
+  },
+  '1992-summer': {
+    name: 'Коби',
+    type: 'каталонская овчарка',
+    title: 'Cobi and Petra',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/8/89/Cobi.png/330px-Cobi.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/8/89/Cobi.png',
+  },
+  '1996-summer': {
+    name: 'Иззи',
+    type: 'первый CGI-талисман',
+    title: 'Izzy (mascot)',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/1/1a/Izzy_%28Atlanta_1996%29.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/1/1a/Izzy_%28Atlanta_1996%29.png',
+  },
+  '2000-summer': {
+    name: 'Олли, Сид и Милли',
+    type: 'кукабарра, утконос и ехидна',
+    title: 'Olly, Syd, Millie and Lizzie',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/0/02/Olly%2C_Syd_and_Millie.png/330px-Olly%2C_Syd_and_Millie.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/0/02/Olly%2C_Syd_and_Millie.png',
+  },
+  '2004-summer': {
+    name: 'Афина и Феб',
+    type: 'дайдала',
+    title: 'Athena, Phevos and Proteas',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/3b/Athena_and_Phevos.svg/330px-Athena_and_Phevos.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/3b/Athena_and_Phevos.svg/250px-Athena_and_Phevos.svg.png',
+  },
+  '2008-summer': {
+    name: 'Фува',
+    type: 'пять талисманов',
+    title: 'Fuwa',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Fuwa.svg/330px-Fuwa.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/18/Fuwa.svg/330px-Fuwa.svg.png',
+  },
+  '2012-summer': {
+    name: 'Уэнлок и Мандевиль',
+    type: 'капли стали',
+    title: 'Wenlock and Mandeville',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/35/Wenlock_and_Mandeville.svg/330px-Wenlock_and_Mandeville.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/35/Wenlock_and_Mandeville.svg/330px-Wenlock_and_Mandeville.svg.png',
+  },
+  '2016-summer': {
+    name: 'Винисиус',
+    type: 'гибрид бразильских зверей',
+    title: 'Vinicius and Tom',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Vinicius_and_Tom.svg/330px-Vinicius_and_Tom.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Vinicius_and_Tom.svg/330px-Vinicius_and_Tom.svg.png',
+  },
+  '2020-summer': {
+    name: 'Мирайтова',
+    type: 'робот',
+    title: 'Miraitowa and Someity',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/2/2e/Tokyo_2020_mascots.svg/330px-Tokyo_2020_mascots.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/2/2e/Tokyo_2020_mascots.svg/330px-Tokyo_2020_mascots.svg.png',
+  },
+  '2024-summer': {
+    name: 'Фриги',
+    type: 'фригийский колпак',
+    title: 'Phryges',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/fc/The_Phryges.svg/330px-The_Phryges.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/fc/The_Phryges.svg/250px-The_Phryges.svg.png',
+  },
+  '1976-winter': {
+    name: 'Шнееманн',
+    type: 'снеговик',
+    title: 'Schneemann and Sonnenweiberl',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/c/c4/Schneemann.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/c/c4/Schneemann.png',
+  },
+  '1980-winter': {
+    name: 'Рони',
+    type: 'енот',
+    title: 'Roni (mascot)',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/8/80/Roni_%28mascot%29.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/8/80/Roni_%28mascot%29.png',
+  },
+  '1984-winter': {
+    name: 'Вучко',
+    type: 'волчонок',
+    title: 'Vučko (mascot)',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/d/db/Vucko.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/d/db/Vucko.png',
+  },
+  '1988-winter': {
+    name: 'Хиди и Хоуди',
+    type: 'белые медведи',
+    title: 'Hidy and Howdy',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/40/Hidy_and_Howdy.png/330px-Hidy_and_Howdy.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/4/40/Hidy_and_Howdy.png',
+  },
+  '1992-winter': {
+    name: 'Мажик',
+    type: 'звёздный человечек',
+    title: 'Magique and Alpy',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/0/00/Magique_%28mascot%29.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/0/00/Magique_%28mascot%29.png',
+  },
+  '1994-winter': {
+    name: 'Хокон и Кристин',
+    type: 'викинги',
+    title: 'Håkon, Kristin and Sondre',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4d/H%C3%A5kon_and_Kristin.png/330px-H%C3%A5kon_and_Kristin.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/4/4d/H%C3%A5kon_and_Kristin.png',
+  },
+  '1998-winter': {
+    name: 'Сукки, Нокки, Лекки и Цукки',
+    type: 'четыре совы',
+    title: 'Sukki, Nokki, Lekki and Tsukki',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/57/Sukki%2C_Nokki%2C_Lekki_and_Tsukki.png/330px-Sukki%2C_Nokki%2C_Lekki_and_Tsukki.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/5/57/Sukki%2C_Nokki%2C_Lekki_and_Tsukki.png',
+  },
+  '2002-winter': {
+    name: 'Паудер, Коппер и Коул',
+    type: 'заяц, койот и медведь',
+    title: 'Powder, Copper, Coal and Otto',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/39/Salt_Lake_2002_Olympic_Mascots.svg/330px-Salt_Lake_2002_Olympic_Mascots.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/39/Salt_Lake_2002_Olympic_Mascots.svg/330px-Salt_Lake_2002_Olympic_Mascots.svg.png',
+  },
+  '2006-winter': {
+    name: 'Неве и Глиц',
+    type: 'снежок и льдинка',
+    title: 'Neve, Gliz, and Aster',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Torino_Olympic_Mascots.svg/330px-Torino_Olympic_Mascots.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/6/62/Torino_Olympic_Mascots.svg/330px-Torino_Olympic_Mascots.svg.png',
+  },
+  '2010-winter': {
+    name: 'Мига, Кватчи и Мукмук',
+    type: 'морской медведь, сасквоч и сурок',
+    title: 'Miga, Quatchi, Sumi and Mukmuk',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4f/Miga%2C_Quatchi%2C_Sumi_and_Mukmuk.svg/330px-Miga%2C_Quatchi%2C_Sumi_and_Mukmuk.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/4f/Miga%2C_Quatchi%2C_Sumi_and_Mukmuk.svg/500px-Miga%2C_Quatchi%2C_Sumi_and_Mukmuk.svg.png',
+  },
+  '2014-winter': {
+    name: 'Леопард, Белый Мишка и Зайка',
+    type: 'леопард, белый медведь и заяц',
+    title: '2014 Winter Olympic and Paralympic Games mascots',
+    thumb: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Stamps_of_Russia_2012_No_1559-61_Mascots_2014_Winter_Olympics.jpg/500px-Stamps_of_Russia_2012_No_1559-61_Mascots_2014_Winter_Olympics.jpg',
+    full: 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/9c/Stamps_of_Russia_2012_No_1559-61_Mascots_2014_Winter_Olympics.jpg/500px-Stamps_of_Russia_2012_No_1559-61_Mascots_2014_Winter_Olympics.jpg',
+  },
+  '2018-winter': {
+    name: 'Сухоранг',
+    type: 'белый тигр',
+    title: 'Soohorang and Bandabi',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/44/Soohorang_and_Bandabi.svg/330px-Soohorang_and_Bandabi.svg.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/44/Soohorang_and_Bandabi.svg/500px-Soohorang_and_Bandabi.svg.png',
+  },
+  '2022-winter': {
+    name: 'Бин Двэнь Двэнь',
+    type: 'панда',
+    title: 'Bing Dwen Dwen',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/16/Bing_Dwen_Dwen_and_Shuey_Rhon_Rhon.png/330px-Bing_Dwen_Dwen_and_Shuey_Rhon_Rhon.png',
+    full: 'https://upload.wikimedia.org/wikipedia/en/1/16/Bing_Dwen_Dwen_and_Shuey_Rhon_Rhon.png',
+  },
+  '2026-winter': {
+    name: 'Тина',
+    type: 'горностай',
+    title: 'Tina and Milo',
+    thumb: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/96/Tina_and_Milo.jpg/330px-Tina_and_Milo.jpg',
+    full: 'https://upload.wikimedia.org/wikipedia/en/9/96/Tina_and_Milo.jpg',
+  },
+}
+
+export function mascotWikiUrl(info) {
+  if (!info?.title) return null
+  return 'https://en.wikipedia.org/wiki/' + encodeURIComponent(info.title.replace(/ /g, '_'))
+}
