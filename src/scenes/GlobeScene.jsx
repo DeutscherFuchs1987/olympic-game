@@ -6,6 +6,7 @@ import Globe from '../components/Globe/Globe.jsx'
 import EventCard from '../components/EventCard/EventCard.jsx'
 import GamesPreview from '../components/EventCard/GamesPreview.jsx'
 import MedalRace from '../components/MedalRace/MedalRace.jsx'
+import MedalButton from '../components/MedalRace/MedalButton.jsx'
 import SoundToggle from '../components/Hud/SoundToggle.jsx'
 import MascotButton from '../components/Mascots/MascotButton.jsx'
 import MascotGallery from '../components/Mascots/MascotGallery.jsx'
@@ -146,6 +147,7 @@ export default function GlobeScene({ active = false }) {
   const [visited, setVisited] = useState(() => new Set())
   const [playing, setPlaying] = useState(false)
   const [mascotsOpen, setMascotsOpen] = useState(false)
+  const [medalsOpen, setMedalsOpen] = useState(false)
   const [eraChapterOpen, setEraChapterOpen] = useState(false)
   const [mapMode, setMapMode] = useState(false)
   const [morphing, setMorphing] = useState(false)
@@ -186,6 +188,7 @@ export default function GlobeScene({ active = false }) {
   const seasonGamesRef = useRef(seasonGames)
   const playTargetRef = useRef(null)
   const playStoppedRef = useRef(false)
+  const skipCurrentOnPlayRef = useRef(false)
   const switchTimer = useRef(null)
   const advanceRef = useRef(null)
 
@@ -293,10 +296,12 @@ export default function GlobeScene({ active = false }) {
     setPreviewGame(null)
     setPlayGame(null)
     clearPlayCursor()
+    skipCurrentOnPlayRef.current = false
     setPlaying(false)
     playingRef.current = false
     setSeasonFilter(next)
     setSelected(null)
+    setMedalsOpen(false)
     const list = next === 'all' ? HELD_GAMES : HELD_GAMES.filter((g) => g.season === next)
     const target = nearestByYear(timeRef.current, list)
     if (target) {
@@ -324,7 +329,7 @@ export default function GlobeScene({ active = false }) {
   }, [])
 
   const handleSelect = useCallback(
-    (game) => {
+    (game, options) => {
       if (!game) return
       if (seasonFilter !== 'all' && game.season !== seasonFilter) {
         setSeasonFilter(game.season)
@@ -336,8 +341,10 @@ export default function GlobeScene({ active = false }) {
       setPreviewGame(null)
       setPlayGame(null)
       clearPlayCursor()
+      skipCurrentOnPlayRef.current = !!options?.skipOnPlay
       setSelected(game)
       setTime(game.year)
+      setMedalsOpen(false)
       playSelect(game.season)
       setVisited((prev) => {
         if (prev.has(game.id)) return prev
@@ -360,6 +367,7 @@ export default function GlobeScene({ active = false }) {
         setPlayGame(null)
         clearPlayCursor()
       }
+      skipCurrentOnPlayRef.current = false
       followUntilRef.current = performance.now() + 1100
       setTime(year)
       closeIfFar(year)
@@ -386,6 +394,7 @@ export default function GlobeScene({ active = false }) {
         setPlayGame(null)
         clearPlayCursor()
       }
+      skipCurrentOnPlayRef.current = false
       followUntilRef.current = performance.now() + 1100
       onWheel(e)
       closeIfFar(timeRef.current)
@@ -416,8 +425,11 @@ export default function GlobeScene({ active = false }) {
     const first = list[0].year
     const last = list[list.length - 1].year
     let from = timeRef.current
+    let skipCurrent = skipCurrentOnPlayRef.current
+    skipCurrentOnPlayRef.current = false
     if (from < first - 0.5 || from >= last - 0.5) {
       from = first
+      skipCurrent = false
       setTime(first)
     }
 
@@ -428,6 +440,15 @@ export default function GlobeScene({ active = false }) {
 
     const currentIndex = list.findIndex((game) => Math.abs(game.year - from) < 0.1)
     if (currentIndex >= 0) {
+      // "Читать подробнее" ends on the current Games card. When playback is
+      // resumed after closing that card, move on to the next Games instead of
+      // showing the exact same stop card again.
+      if (skipCurrent && currentIndex < list.length - 1) {
+        playTargetRef.current = currentIndex
+        playStoppedRef.current = true
+        advanceRef.current?.()
+        return
+      }
       playTargetRef.current = currentIndex
       playStoppedRef.current = true
       setPlayGame(list[currentIndex])
@@ -465,6 +486,13 @@ export default function GlobeScene({ active = false }) {
     playingRef.current = false
     setPlaying(false)
   }, [])
+
+  // The board is a snapshot of the current moment, so freeze autoplay while
+  // it is open. The stop card stays behind the dialog and is ready to resume.
+  const openMedals = useCallback(() => {
+    pauseForOrbit()
+    setMedalsOpen(true)
+  }, [pauseForOrbit])
 
   const toggleMap = useCallback(() => {
     if (morphing) return
@@ -599,11 +627,19 @@ export default function GlobeScene({ active = false }) {
 
       <CancelledNotice time={time} games={cancelledSeasonGames} selected={selected} />
 
-      <MedalRace games={seasonGames} time={time} season={seasonFilter} />
+      <MedalRace
+        games={seasonGames}
+        time={time}
+        season={seasonFilter}
+        modalOpen={medalsOpen}
+        onCloseModal={() => setMedalsOpen(false)}
+      />
 
       <SoundToggle />
 
       <MascotButton onClick={() => setMascotsOpen(true)} count={mascotCount} />
+
+      <MedalButton onClick={openMedals} />
 
       <button
         type="button"
@@ -621,7 +657,7 @@ export default function GlobeScene({ active = false }) {
         game={previewGame}
         playing={playing}
         dwellMs={PREVIEW_DWELL}
-        onReadMore={() => previewGame && handleSelect(previewGame)}
+        onReadMore={() => previewGame && handleSelect(previewGame, { skipOnPlay: true })}
         onContinue={continueFromPreview}
         onAutoAdvance={autoAdvance}
         onClose={closePreview}

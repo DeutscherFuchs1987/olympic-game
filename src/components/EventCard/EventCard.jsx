@@ -5,6 +5,7 @@ import { countryName } from '../../data/countries'
 import CountryFlag from '../Common/CountryFlag.jsx'
 import { cityRu } from '../../data/wikiTitles'
 import { useWikiImage, useWikiGallery, useGamesInfo } from '../../hooks/useWikiImage.js'
+import { useIsCompact } from '../../hooks/useMediaQuery.js'
 import { isSensitiveGames, safeGamesMedia } from '../../data/contentPolicy.js'
 
 const SEASON_RU = { summer: 'Летние', winter: 'Зимние' }
@@ -173,6 +174,7 @@ function Lightbox({ photos, index, onClose, onNav }) {
 }
 
 export default function EventCard({ event, onClose, historyGames = [], onNavigate }) {
+  const compact = useIsCompact()
   const era = event ? getEra(event.year) : null
   const sensitive = event ? isSensitiveGames(event.year) : false
   const safeMedia = sensitive ? safeGamesMedia(event?.year) : null
@@ -249,10 +251,12 @@ export default function EventCard({ event, onClose, historyGames = [], onNavigat
           <motion.aside
             key={event.id}
             className={`event-card era-${era.id}`}
-            initial={{ opacity: 0, x: 48, y: '-50%' }}
-            animate={{ opacity: 1, x: 0, y: '-50%' }}
-            exit={{ opacity: 0, x: 48, y: '-50%' }}
-            transition={{ type: 'spring', stiffness: 210, damping: 26 }}
+            initial={compact ? { opacity: 0, y: 42 } : { opacity: 0, x: 48, y: '-50%' }}
+            animate={compact ? { opacity: 1, y: 0 } : { opacity: 1, x: 0, y: '-50%' }}
+            exit={compact ? { opacity: 0, y: 34 } : { opacity: 0, x: 48, y: '-50%' }}
+            transition={compact
+              ? { duration: 0.32, ease: [0.22, 1, 0.36, 1] }
+              : { type: 'spring', stiffness: 210, damping: 26 }}
           >
             <button className="event-card__close" onClick={onClose} aria-label="Закрыть">
               ×

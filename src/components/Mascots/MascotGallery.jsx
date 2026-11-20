@@ -75,6 +75,7 @@ export default function MascotGallery({ open, onClose, onOpenGame }) {
     <AnimatePresence>
       {open && (
         <motion.div
+          key="mascots-gallery"
           className="mascots"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -138,9 +139,10 @@ export default function MascotGallery({ open, onClose, onOpenGame }) {
         </motion.div>
       )}
 
-      <AnimatePresence>
+      <AnimatePresence key="mascots-detail">
         {open && current && (
           <motion.div
+            key="mascots-detail-panel"
             className="mascots__detail"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
