@@ -78,6 +78,7 @@ const SceneContents = ({
   previewOpen,
   onUserOrbit,
   hopRef,
+  focusRelease,
 }) => {
   const controlsRef = useRef()
   const groupRef = useRef()
@@ -127,6 +128,8 @@ const SceneContents = ({
         eraId={eraId}
       />
 
+      <ReleaseFocus signal={focusRelease} controlsRef={controlsRef} />
+
       <OrbitControls
         ref={controlsRef}
         makeDefault
@@ -144,6 +147,32 @@ const SceneContents = ({
   )
 }
 
+function ReleaseFocus({ signal, controlsRef }) {
+  const lastSignal = useRef(0)
+
+  useEffect(() => {
+    if (signal === lastSignal.current) return
+    lastSignal.current = signal
+
+    const controls = controlsRef?.current
+    if (!controls) return
+
+    // Pull the focus back to the centre of the globe, but keep the current
+    // camera direction. The user can immediately orbit the whole Earth.
+    gsap.killTweensOf(controls.target)
+    gsap.to(controls.target, {
+      x: 0,
+      y: 0,
+      z: 0,
+      duration: 0.75,
+      ease: 'power2.inOut',
+      onUpdate: () => controls.update(),
+    })
+  }, [signal, controlsRef])
+
+  return null
+}
+
 const MemoScene = memo(SceneContents)
 
 export default function GlobeScene({ active = false }) {
@@ -159,6 +188,7 @@ export default function GlobeScene({ active = false }) {
   const [seasonFilter, setSeasonFilter] = useState('all')
   const [previewGame, setPreviewGame] = useState(null)
   const [playGame, setPlayGame] = useState(null)
+  const [focusRelease, setFocusRelease] = useState(0)
   const morphRef = useRef(0)
   const tooltipRef = useRef()
   const labelRef = useRef()
@@ -220,6 +250,7 @@ export default function GlobeScene({ active = false }) {
       playingRef.current = false
       setPreviewGame(null)
       setPlayGame(null)
+      setFocusRelease((value) => value + 1)
       clearPlayCursor()
       return
     }
@@ -237,6 +268,7 @@ export default function GlobeScene({ active = false }) {
       playingRef.current = false
       setPreviewGame(null)
       setPlayGame(null)
+      setFocusRelease((value) => value + 1)
       clearPlayCursor()
       return
     }
@@ -436,6 +468,7 @@ export default function GlobeScene({ active = false }) {
       playingRef.current = false
       hopRef.current = null
       setPlaying(false)
+      setFocusRelease((value) => value + 1)
       return
     }
 
@@ -574,6 +607,7 @@ export default function GlobeScene({ active = false }) {
             previewOpen={previewOpen}
             onUserOrbit={pauseForOrbit}
             hopRef={hopRef}
+            focusRelease={focusRelease}
           />
         </Canvas>
       </div>

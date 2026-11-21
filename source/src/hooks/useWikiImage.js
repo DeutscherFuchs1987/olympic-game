@@ -232,3 +232,51 @@ export function useGamesInfo(year, season) {
   const { loading, data } = useCached(gamesCache, key, loadGamesInfo)
   return { loading, info: data }
 }
+
+function cacheLoad(cache, key, loader) {
+  if (!key) return Promise.resolve(null)
+  if (cache.has(key)) return Promise.resolve(cache.get(key))
+  return loader(key)
+    .then((data) => {
+      cache.set(key, data)
+      return data
+    })
+    .catch(() => {
+      cache.set(key, null)
+      return null
+    })
+}
+
+/**
+ * Warm the Wikipedia caches for the live demo. Called from App when the URL
+ * contains ?demo=1: the presentation hand-off must not wait for a summary,
+ * gallery or image request on stage.
+ */
+export function preloadGamesMedia(year, season, city) {
+  if (!year || !season) return Promise.resolve([])
+
+  const tasks = [
+    cacheLoad(gamesCache, `${year}|${season}`, loadGamesInfo),
+  ]
+
+  if (city && !isSensitiveGames(year)) {
+    tasks.push(
+      cacheLoad(summaryCache, cityWikiTitle(city), loadSummary).then((image) => {
+        if (image?.src && typeof Image !== 'undefined') {
+          const img = new Image()
+          img.src = image.src
+        }
+      }),
+      cacheLoad(galleryCache, `${year}|${season}|${city}`, loadGallery).then((photos) => {
+        for (const photo of (photos ?? []).slice(0, 3)) {
+          if (photo.sources?.[0] && typeof Image !== 'undefined') {
+            const img = new Image()
+            img.src = photo.sources[0]
+          }
+        }
+      }),
+    )
+  }
+
+  return Promise.allSettled(tasks)
+}

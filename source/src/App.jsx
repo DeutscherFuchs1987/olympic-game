@@ -1,14 +1,18 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Preloader from './components/Loader/Preloader.jsx'
 import GlobeScene from './scenes/GlobeScene.jsx'
 import SpikeScene from './scenes/SpikeScene.jsx'
+import { preloadDemo } from './data/demoPreload.js'
 
 export default function App() {
-  const [ready, setReady] = useState(false)
-  const showSpike = useMemo(
-    () => new URLSearchParams(window.location.search).has('spike'),
-    [],
-  )
+  const params = useMemo(() => new URLSearchParams(window.location.search), [])
+  const showSpike = params.has('spike')
+  const demo = params.has('demo') || params.has('skipIntro')
+  const [ready, setReady] = useState(demo)
+
+  useEffect(() => {
+    if (demo) preloadDemo()
+  }, [demo])
 
   if (showSpike) {
     return (
