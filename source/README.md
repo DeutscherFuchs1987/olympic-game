@@ -51,3 +51,15 @@ React 19, Vite, React Three Fiber, Three.js, Drei, GSAP, Motion, Tone.js.
 - Фото и статьи подгружаются с Wikimedia Commons / Wikipedia.
 - Флаги подгружаются онлайн с jsDelivr (flag-icons) с резервным источником flagcdn / Wikimedia Commons.
   dev: DeutscherFuchs1987 && tulenka22
+
+## Презентация и защита
+
+Презентация вынесена в отдельный проект `../presentation` (Reveal.js, QR,
+речь в `speech.docx`). Приложение поддерживает demo-режим:
+
+```text
+http://localhost:5173/?demo=1
+```
+
+Он пропускает прелоадер и прогревает карточки 2024/1940/1924. Подробности
+запуска и сборки — в `../presentation/README.md`.

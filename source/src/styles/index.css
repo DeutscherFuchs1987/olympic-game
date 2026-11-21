@@ -1454,10 +1454,31 @@ button {
   flex: 1 1 auto;
   min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 4px 0 0;
   list-style: none;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
+}
+
+.race__list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.race__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.race__list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.race__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.38);
 }
 
 .race-row {

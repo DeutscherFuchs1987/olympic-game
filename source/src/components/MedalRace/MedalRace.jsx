@@ -5,8 +5,6 @@ import { countryName } from '../../data/countries.js'
 import { useFocusTrap } from '../../hooks/useFocusTrap.js'
 import CountryFlag from '../Common/CountryFlag.jsx'
 
-const TOP_N = 8
-const TOP_BOARD = 12
 const SEASON_LABEL = { summer: 'Летние', winter: 'Зимние', all: 'Все' }
 
 function standingsUpTo(games, count) {
@@ -61,8 +59,10 @@ export default function MedalRace({ games, time, season = 'all', modalOpen = fal
   const dialogRef = useFocusTrap(modalOpen)
   const { count, rows, year } = useMedalStandings(games, time)
 
-  const standings = useMemo(() => rows.slice(0, TOP_N), [rows])
-  const board = useMemo(() => rows.slice(0, TOP_BOARD), [rows])
+  // The panel has its own scroll area: show the full list, not just a top-8
+  // slice, so the table can be explored without leaving the globe.
+  const standings = rows
+  const board = rows
 
   useEffect(() => {
     prevRanks.current = new Map(standings.map((country, index) => [country.code, index]))
@@ -235,11 +235,6 @@ export default function MedalRace({ games, time, season = 'all', modalOpen = fal
                       })}
                     </ol>
 
-                    {rows.length > TOP_BOARD && (
-                      <div className="medal-board__note">
-                        Показаны первые {TOP_BOARD} стран из {rows.length}
-                      </div>
-                    )}
                   </>
                 ) : (
                   <div className="medal-board__empty">
