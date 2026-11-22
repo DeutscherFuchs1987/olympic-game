@@ -1,5 +1,8 @@
 # Amvera Static Web deployment.
 # https://docs.amvera.ru/applications/environments/nodejs-browser.html
+#
+# The application source currently lives in ./source (the collaborator's
+# branch keeps it there), so build that project and publish its dist output.
 meta:
   environment: static_web
   toolchain:
@@ -7,5 +10,6 @@ meta:
     version: "22"
 
 build:
+  additionalCommands: "npm --prefix source ci && npm --prefix source run build"
   artifacts:
-    "dist/*": /
+    "source/dist/*": /

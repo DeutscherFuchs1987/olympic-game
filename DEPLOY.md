@@ -4,6 +4,10 @@
 и раздаёт его через nginx (`static_web`). Никакой backend/Node-сервер в рантайме
 не нужен.
 
+Актуальный исходный код сейчас лежит в каталоге [`source/`](./source):
+коллега ведёт работу в этой папке, а корень репозитория хранит старую копию.
+Amvera собирает именно `source/`.
+
 Конфигурация лежит в [`amvera.yaml`](./amvera.yaml):
 
 ```yaml
@@ -14,8 +18,9 @@ meta:
     version: "22"
 
 build:
+  additionalCommands: "npm --prefix source ci && npm --prefix source run build"
   artifacts:
-    "dist/*": /
+    "source/dist/*": /
 ```
 
 ## 1. Создать проект
@@ -53,6 +58,7 @@ Amvera слушает ветку `master`. Если в удалённом реп
 
 ## 4. Проверка после деплоя
 
+- Живой сайт: https://olympic-game-deutscherfuchs.msk1.amvera.tech/
 - Главная страница открывается, прелоадер проходит.
 - Текстура Земли и границы стран загружаются (пути `/textures/...` и
   `/data/...` работают, потому что сайт раздаётся с корня домена).
@@ -68,6 +74,14 @@ git push amvera main:master
 
 Каждый push в `master` Amvera автоматически пересобирает проект.
 
+> После изменения кода в `source/` сначала проверьте сборку локально:
+>
+> ```bash
+> cd source
+> npm ci
+> npm run build
+> ```
+
 ## 6. Если сборка не проходит на Пробном тарифе
 
 Скорее всего, не хватило 100 МБ RAM на `npm install` + `vite build`.
@@ -78,11 +92,12 @@ git push amvera main:master
 2. Собрать локально и задеплоить готовые файлы:
 
 ```bash
+cd source
 npm ci
 npm run build
 ```
 
-Затем загрузить содержимое `dist/` в проект через интерфейс Amvera и
+Затем загрузить содержимое `source/dist/` в проект через интерфейс Amvera и
 использовать конфигурацию с `toolchain: html` и `artifacts: "site/*": /`
 (файлы `dist` нужно положить в папку `site`).
 
